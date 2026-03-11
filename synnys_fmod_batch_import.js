@@ -501,12 +501,33 @@ studio.menu.addMenuItem({
                         var conflictMode = this.findWidget("m_conflict_overwrite").text().indexOf("[X]") !== -1 ? 'overwrite'
                                         : this.findWidget("m_conflict_rename").text().indexOf("[X]")    !== -1 ? 'rename'
                                         : 'skip';
-                        var preview = buildPreviewText(groups, conflictMode);
+                        var previewLines = buildPreviewText(groups, conflictMode).split("\n");
 
-                        studio.system.message(
-                            "Found " + audioFiles.length + " file(s) -> " +
-                            groupKeys.length + " event(s) would be created:\n\n" + preview
-                        );
+                        // Paginate: show 20 events per page
+                        // Use question() for intermediate pages so Cancel exits early
+                        var pageSize = 20;
+                        var totalPages = Math.ceil(previewLines.length / pageSize);
+                        var page = 0;
+
+                        while (page < totalPages) {
+                            var slice = previewLines.slice(page * pageSize, (page + 1) * pageSize);
+                            var pageLabel = totalPages > 1 ? " (page " + (page + 1) + " of " + totalPages + ")" : "";
+                            var msg = "Found " + audioFiles.length + " file(s) -> " +
+                                      groupKeys.length + " event(s) would be created" + pageLabel + ":\n\n" +
+                                      slice.join("\n");
+
+                            var isLastPage = page === totalPages - 1;
+
+                            if (isLastPage) {
+                                studio.system.message(msg);
+                            } else {
+                                msg += "\n\n(Yes = next page, No = close preview)";
+                                if (!studio.system.question(msg)) {
+                                    break;
+                                }
+                            }
+                            page++;
+                        }
                     }
                 },
                 {
